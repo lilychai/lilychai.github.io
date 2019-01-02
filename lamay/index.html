@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8 />
+    <title>Lamay Island 小琉球</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.css' rel='stylesheet' />
+
+    <link href="https://fonts.googleapis.com/css?family=Slabo+27px" rel="stylesheet">
+    <link href='style/index.css' rel='stylesheet' />
+    <script src='style/anchors.js'></script>
+    <script src='style/orientations.js'></script>
+
+    <!-- Load data. -->
+    <script src='data/pois.js'></script>
+    <script src='data/kms.js'></script>
+    <script src='data/traces.js'></script>
+    <script src='data/photos.js'></script>
+
+    <!-- Load map layers. -->
+    <script src='layers/poi-dots.js'></script>
+    <script src='layers/km-dots.js'></script>
+    <script src='layers/poi-cnames.js'></script>
+    <script src='layers/poi-names.js'></script>
+    <script src='layers/km-names.js'></script>
+    <script src='layers/trace-lines.js'></script>
+    <script src='layers/road-lines.js'></script>
+  </head>
+
+  <body>
+    <div id='map'></div>
+    <button style="display:none;" id='instruction'>Click on the dots to see photos!</button>
+    <button onclick="fly();" id='fly'><span>Take me there</span></button>
+
+    <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoibGlseWNoYWkiLCJhIjoiY2pxZXRnZjBtNHg2dzQ0c2I1NzBxMXZodCJ9.w839Is_L9F7DBPMmg9HDvQ';
+
+    // Create a mapboxgl.Map object in 'map' container.
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/lilychai/cjqetqat9f7ke2rn0z97qwn5v',
+        center: [0, 40],
+        zoom: 0.5
+    });
+
+    // Create a layer for each data source
+    map.on('load', function() {
+      // Add zoom and rotation controls to the map.
+      // map.addControl(new mapboxgl.Navigation());
+      map.addLayer(road_lines);
+      map.addLayer(trace_lines);
+
+      map.addLayer(km_names_br);
+      map.addLayer(km_names_tl);
+      map.addLayer(km_names_t);
+      map.addLayer(km_names_bl);
+
+      map.addLayer(poi_cnames_l);
+      map.addLayer(poi_cnames_r);
+      map.addLayer(poi_cnames_tl);
+      map.addLayer(poi_cnames_bl);
+      map.addLayer(poi_cnames_br);
+
+      map.addLayer(poi_names_l);
+      map.addLayer(poi_names_r);
+      map.addLayer(poi_names_r_long);
+      map.addLayer(poi_names_tr);
+      map.addLayer(poi_names_tl);
+      map.addLayer(poi_names_bl);
+      map.addLayer(poi_names_br);
+
+      map.addLayer(km_dots);
+      map.addLayer(poi_dots);
+    });
+
+
+    function fly() {
+        // Hide button
+        document.getElementById("fly").style.display = 'none';
+
+        // Fly to island
+        map.flyTo({
+            center: [120.369817, 22.338644],
+            zoom: 13,
+            bearing: 0,
+            speed: 2,
+
+            // This can be any function that takes a number in [0, 1] as input
+            // and returns another number in [0, 1].
+            easing: function (t) {
+                return t*t;
+            }
+        });
+
+        // Show instruction after a delay.
+        window.setTimeout(function() {
+          document.getElementById("instruction").style.display = 'block';
+        }, 1500);
+
+        // Hide instruction after a delay
+        window.setTimeout(function() {
+          document.getElementById("instruction").style.visibility = 'hidden';
+        }, 5000);
+    }
+
+    // Popup box size
+    const widths = {
+      'portrait': '225',
+      'landscape': '300'
+    }
+
+    var feature = null, type = null;
+    map.on('mousemove', function (e) {
+      // Get feature
+      var features = map.queryRenderedFeatures(e.point);
+
+      // Get feature
+      var features = map.queryRenderedFeatures(e.point);
+      if (features.length > 0) {
+        // Take the top-most feature.
+        feature = features[0]
+
+        if ('poi' in feature.properties) type = 'poi';
+        else if ('km' in feature.properties) type = 'km';
+        else type = null;
+      }
+
+      if (feature && type) {
+        // Prep feature for popup.
+        const id = feature.properties[type]
+        feature.properties['photo'] = photos[type][id]
+        feature.properties['width'] = widths[orientations[type][id]]
+        feature.properties['anchor'] = anchors[type][id]
+      }
+
+      map.getCanvas().style.cursor = feature && feature.properties['photo'] ? 'pointer' : '';
+    });
+
+
+    var popup = null;
+    map.on('click', function (e) {
+      // Hide instruction in case still visible.
+      document.getElementById("instruction").style.visibility = 'hidden';
+
+      // Close popup if exist.
+      if (popup) popup.remove();
+
+      // If a POI or km marker...
+      if (feature && type) {
+        // Center the dot.
+        map.flyTo( { center: feature.geometry.coordinates } );
+
+        // Item to popup.
+        const html = "<img src='" + feature.properties.photo +
+                      "' width='" + feature.properties.width + "'>";
+
+        // Add popup to map.
+        const options = { 'closeOnClick': true,
+                        'closeButton': false,
+                        'anchor': feature.properties.anchor }
+
+        // Create popup window.
+        const popup = new mapboxgl.Popup(options)
+                                  .setLngLat(feature.geometry.coordinates)
+                                  .setHTML(html)
+                                  .addTo(map);
+      }
+    });
+
+    </script>
+  </body>
+</html>

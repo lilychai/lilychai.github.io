@@ -1,1 +1,26 @@
-Hello World
+<html>
+<head>
+	<meta charset=utf-8 />
+	<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.js'></script>
+	<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.css' rel='stylesheet' />
+	<link href="https://fonts.googleapis.com/css?family=Slabo+27px" rel="stylesheet">
+	<link href='index.css' rel='stylesheet' />
+</head>
+<body>
+	<div class='map' id='one'>
+		<div class='whiteout' ></div>
+		<button class='overlay' onclick="location.href='lamay/index.html'"><span> Lamay Island </span></div>
+	</div>
+	<script>
+		mapboxgl.accessToken = 'pk.eyJ1IjoibGlseWNoYWkiLCJhIjoiY2pxZXRnZjBtNHg2dzQ0c2I1NzBxMXZodCJ9.w839Is_L9F7DBPMmg9HDvQ';
+
+		var map = new mapboxgl.Map({
+				container: 'one',
+				interactive: false,
+				style: 'mapbox://styles/lilychai/cjqetqat9f7ke2rn0z97qwn5v',
+				center: [120.375, 22.336],
+				zoom: 15
+		});
+	</script>
+</body>
+</html>
