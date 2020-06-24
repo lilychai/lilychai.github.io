@@ -4,8 +4,8 @@
     <meta charset=utf-8 />
     <title>Lamay Island 小琉球</title>
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.js'></script>
-    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.11.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.11.0/mapbox-gl.css' rel='stylesheet' />
 
     <link href="https://fonts.googleapis.com/css?family=Slabo+27px" rel="stylesheet">
     <link href='style/index.css' rel='stylesheet' />
@@ -34,12 +34,12 @@
     <button onclick="fly();" id='fly'><span>Take me there</span></button>
 
     <script>
-    mapboxgl.accessToken = 'pk.eyJ1IjoibGlseWNoYWkiLCJhIjoiY2pxZXRnZjBtNHg2dzQ0c2I1NzBxMXZodCJ9.w839Is_L9F7DBPMmg9HDvQ';
+    mapboxgl.accessToken = "pk.eyJ1IjoibGlseWNoYWkiLCJhIjoiY2tic3MxcGNmMDMxMTJxczdiZjc4dGE4NSJ9.kEwN7_i79M9tnj3uAbaipQ";
 
     // Create a mapboxgl.Map object in 'map' container.
     const map = new mapboxgl.Map({
         container: 'map',
-        style: 'mapbox://styles/lilychai/cjqetqat9f7ke2rn0z97qwn5v',
+        style: 'mapbox://styles/lilychai/ckbsr5t4304li1imhcnqv68y9',
         center: [0, 40],
         zoom: 0.5
     });
@@ -129,9 +129,11 @@
       if (feature && type) {
         // Prep feature for popup.
         const id = feature.properties[type]
-        feature.properties['photo'] = photos[type][id]
-        feature.properties['width'] = widths[orientations[type][id]]
-        feature.properties['anchor'] = anchors[type][id]
+        if (id in photos[type]) {
+          feature.properties['photo'] = photos[type][id]
+          feature.properties['width'] = widths[orientations[type][id]]
+          feature.properties['anchor'] = anchors[type][id]
+        }
       }
 
       map.getCanvas().style.cursor = feature && feature.properties['photo'] ? 'pointer' : '';
@@ -151,20 +153,23 @@
         // Center the dot.
         map.flyTo( { center: feature.geometry.coordinates } );
 
-        // Item to popup.
-        const html = "<img src='" + feature.properties.photo +
-                      "' width='" + feature.properties.width + "'>";
+        if (feature.properties.photo) {
+          // Item to popup.
+          const html = "<div><img src='" + feature.properties.photo +
+                        "' width='" + feature.properties.width + "px'></div>";
 
-        // Add popup to map.
-        const options = { 'closeOnClick': true,
-                        'closeButton': false,
-                        'anchor': feature.properties.anchor }
+          // Add popup to map.
+          const options = { 'closeOnClick': true,
+                            'closeButton': false,
+                            'maxWidth': 'none',
+                            'anchor': feature.properties.anchor }
 
-        // Create popup window.
-        const popup = new mapboxgl.Popup(options)
-                                  .setLngLat(feature.geometry.coordinates)
-                                  .setHTML(html)
-                                  .addTo(map);
+          // Create popup window.
+          const popup = new mapboxgl.Popup(options)
+                                    .setLngLat(feature.geometry.coordinates)
+                                    .setHTML(html)
+                                    .addTo(map);
+        }
       }
     });
 

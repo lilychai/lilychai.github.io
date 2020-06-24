@@ -3,7 +3,7 @@ const road_lines = {
     "type": "line",
     "source": {
         "type": "vector",
-        "url": "mapbox://mapbox.mapbox-streets-v7"
+        "url": "mapbox://mapbox.mapbox-streets-v8"
     },
     "source-layer": "road",
     "minzoom": 10,
