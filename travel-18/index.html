@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8 />
+    <title>A Year of Travel</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.11.0/mapbox-gl.js"></script>
+    <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.11.0/mapbox-gl.css" rel="stylesheet" />
+
+    <link href="https://fonts.googleapis.com/css?family=Slabo+27px" rel="stylesheet">
+    <link href="style/index.css" rel="stylesheet" />
+
+    <script src="https://api.tiles.mapbox.com/mapbox.js/plugins/turf/v2.0.0/turf.min.js" charset="utf-8"></script>
+
+    <!-- Load data. -->
+    <script src="data/trips.js"></script>
+
+    <script src="layers/names.js"></script>
+    <script src="layers/routes.js"></script>
+    <script src="layers/transportations.js"></script>
+  </head>
+
+  <body>
+    <div id="map"></div>
+    <button onclick="start();" id="start"><span>Start</span></button>
+
+    <script>
+    mapboxgl.accessToken = "pk.eyJ1IjoibGlseWNoYWkiLCJhIjoiY2tic3MxcGNmMDMxMTJxczdiZjc4dGE4NSJ9.kEwN7_i79M9tnj3uAbaipQ";
+
+    //==========================================================================
+    // Create map
+    //==========================================================================
+
+    var map = new mapboxgl.Map({
+        container: "map",
+        style: "mapbox://styles/lilychai/ckbsr5t4304li1imhcnqv68y9",
+        attributionControl: false,
+        center: [-96, 37.8],
+        zoom: 3
+    });
+
+
+    // Add credit.
+    map.addControl(new mapboxgl.AttributionControl({
+      "compact": true,
+      "customAttribution": "<div>Icons made by <a href='https://www.freepik.com/' title='Freepik'>Freepik</a> from <a href='https://www.flaticon.com/' title='Flaticon'>www.flaticon.com</a> is licensed by <a href='http://creativecommons.org/licenses/by/3.0/' title='Creative Commons BY 3.0' target='_blank'>CC 3.0 BY</a></div>"
+    }), "bottom-right");
+
+
+    // Load map.
+    map.on("load", function(e) {
+
+      // Add a layer for place names.
+      map.addLayer(names_layer);
+
+      // Add a layer for routes.
+      map.addLayer(routes_layer);
+
+      // Add a layer for each mode of transportation.
+      transportation_layers.forEach(function(transportation_layer) {
+        map.addLayer(transportation_layer);
+      });
+    });
+
+
+    //==========================================================================
+    // Animation setting
+    //==========================================================================
+
+    const distance_per_frame = 40;  // Change in location from one frame to the next.
+    const min_nframes = 120;        // Minimum number of frames.
+    const animation_delay = 10;     // Slight delay to smooth out animation.
+
+
+    //==========================================================================
+    // Helper functions
+    //==========================================================================
+
+    // Helper function - compute bearing.
+    function compute_bearing(coord1, coord2, transport_mode) {
+      var bearing = turf.bearing(turf.point(coord1), turf.point(coord2));
+
+      // Rotate icon by 90 degrees.
+      if (transport_mode != "air") {
+        bearing -= 90
+      }
+      return bearing
+    }
+
+
+    // Helper function - true if two points are identical.
+    function identical(p1, p2) {
+      return (p1[0] === p2[0] && p1[1] === p2[1]);
+    }
+
+
+    // Helper function - month, year to string.
+    function to_str(month, year) {
+      const month_str = ["dummy",
+                         "January", "February", "March",
+                         "April", "May", "June",
+                         "July", "August", "September",
+                         "October", "November", "December"]
+
+      return month_str[month] + " " + year;
+    }
+
+
+    // Helper function - hide all transportations.
+    function hide_all() {
+      transportations.forEach(function(transport_mode) {
+        map.setLayoutProperty(transport_mode + "-layer", "visibility", "none");
+      });
+    }
+
+
+    // Helper function - show transportation.
+    function show_transportation(transport_mode) {
+      map.setLayoutProperty(transport_mode + "-layer", "visibility", "visible");
+    }
+
+
+    // Helper function to create new empty linestring feature.
+    function new_linestring(coord) {
+      return {
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [coord, coord]
+        }
+      };
+    }
+
+
+    // Helper function to create a new point feature.
+    function new_point(coord) {
+      return {
+        "type": "Feature",
+        "properties": { "bearing": 0 },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [coord, coord]
+        }
+      };
+    }
+
+
+    //==========================================================================
+    // Process path
+    //==========================================================================
+
+    // Prepares two points into an arc.
+    function points_to_arc(origin, destination) {
+
+      // First, create a straight line from the origin to destination.
+      const line = {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            origin.geometry.coordinates,
+            destination.geometry.coordinates
+          ]
+        }
+      }
+
+      // Compute the line distance in kilometers.
+      var distance = turf.lineDistance(line, "kilometers");
+      var step = Math.min(distance_per_frame, distance / min_nframes)
+
+      // Draw an arc.
+      var arc = [];
+      for (var i = 0; i < distance; i += step) {
+          // Flying time.
+          var segment = turf.along(line, i, "kilometers");
+          arc.push(segment.geometry.coordinates);
+      }
+
+      // Update geometry of line from a straight line to the arc.
+      line.geometry.coordinates = arc;
+
+      return line;
+    }
+
+
+    // Turns a trip into a feature collection of arcs.
+    function prep(trip) {
+      var arcs = []
+
+      // For every leg of a trip
+      for (var i = 0; i < trip.features.length - 1; i++) {
+          var arc = points_to_arc(trip.features[i], trip.features[i+1]);
+          var transport_mode = trip.features[i+1].properties.arrived_by;
+
+          var bearings = arc.geometry.coordinates
+                         .slice(0, arc.geometry.coordinates.length - 2)
+                         .map(function(coord, i) {
+                           return compute_bearing(coord,
+                                                  arc.geometry.coordinates[i+1],
+                                                  transport_mode)
+                         });
+
+          bearings.push(bearings[bearings.length - 1])
+          bearings.push(bearings[bearings.length - 1])
+
+          // Carry over some properties.
+          arc.properties = {
+            "bearings": bearings,
+            "transportation": transport_mode,
+            "year": trip.features[i+1].properties.year,
+            "month": trip.features[i+1].properties.month,
+            "wait": !trip.features[i+1].properties.transfer
+          }
+          arcs.push(arc)
+      }
+
+      return { "type": "FeatureCollection", "features": arcs };
+    }
+
+
+    // Turns a trip (a feature collection of points)
+    // into a route (a feature collection of arc linestrings)
+    function prepare_trip(tid) {
+      route = prep(trips[tid]);
+      if (tid === 0) {
+        coord = route.features[0].geometry.coordinates[0];
+        path  = new_linestring(coord);
+        point = new_point(coord)
+      }
+    }
+
+
+    // Set up the layers for a leg of a trip.
+    function prepare_leg(fid) {
+      arc = route.features[fid];
+      transportation = arc.properties.transportation;
+      center = turf.center(arc);
+      hide_all();
+      show_transportation(transportation);
+    }
+
+    //==========================================================================
+    // Animation
+    //==========================================================================
+
+    // Variable for animation
+    var tid, fid;
+    var counter;
+    var point;           // where to place icons;
+    var path;            // what has been travelled so far;
+    var route;           // the entire trip;
+    var arc;             // current leg;
+    var transportation;  // current mode of transport;
+    var center;          // center of the arc, used to estimate how much time it
+                         // takes to fit bounds.
+
+    // Animation function
+    function animate() {
+
+      // Update the point's location.
+      point.geometry.coordinates = arc.geometry.coordinates[counter];
+      point.properties.bearing   = arc.properties.bearings[counter];
+
+      // Add the geometry of the path.
+      path.geometry.coordinates.push(arc.geometry.coordinates[counter]);
+
+      // Create a feature collection so that the point and the path are part
+      // of the same source so guaranteed to be in sync.
+      // (See https://github.com/mapbox/mapbox-gl-js/issues/4930#issuecomment-312785859)
+      var fc = { "type": "FeatureCollection", "features": [point, path] }
+
+      // Update map layers.
+      map.getSource(transportation + "-layer").setData(fc);
+      map.getSource("routes-layer").setData(fc);
+
+      // Request the next frame of animation if not at the end of the arc.
+      if (counter < arc.geometry.coordinates.length - 1) {
+
+          setTimeout(function() {
+            requestAnimationFrame(animate);
+            counter++;
+          }, animation_delay)
+
+      } else {
+        counter = 0;
+
+        // Move to next leg of a trip.
+        fid++;
+        var wait  = Number(arc.properties.wait);  // 0 = no wait, 1 = wait
+        var year  = arc.properties.year;
+        var month = arc.properties.month;
+
+        if (fid == route.features.length) {
+          fid = 0;
+
+          // Move to the next trip.
+          tid++;
+          if (tid >= trips.length) return;
+
+          prepare_trip(tid);
+          wait  = 2;  // 2 = new trip.
+          year  = route.features[fid].properties.year;
+          month = route.features[fid].properties.month;
+        }
+
+        // Geometry of next leg.
+        last_center = center;
+        prepare_leg(fid);
+
+        setTimeout(function() {
+          document.getElementById("start").children[0].innerHTML = to_str(month, year);
+
+          requestAnimationFrame(animate);
+        }, fit(last_center, center, wait));
+      }
+    }
+
+
+    //==========================================================================
+    // Start!
+    //==========================================================================
+
+    function start() {
+      // Disable button
+      document.getElementById("start").disabled = true;
+
+      tid = 0;
+      fid = 0;
+      counter = 0;
+
+      // Prepare data for animation.
+      prepare_trip(tid);
+      prepare_leg(fid);
+
+      // Change button text to month.
+      document.getElementById("start").children[0].innerHTML = to_str(
+        route.features[fid].properties.month,
+        route.features[fid].properties.year
+      );
+
+      // Start animation.
+      setTimeout(animate, fit(center, center, 0));
+    }
+
+
+    function fit(last_center, new_center, wait_flag) {
+      const k = route.features[fid].geometry.coordinates.length;
+
+      // Center map.
+      map.fitBounds([
+        route.features[fid].geometry.coordinates[0],
+        route.features[fid].geometry.coordinates[k-1]
+      ], { padding: 200 });
+
+
+      if (wait_flag === 0) return 0;
+
+      // Min delay 1000, max delay 3000
+      const distance = turf.distance(last_center, new_center);
+      const delay = Math.min(Math.max(distance, 1000), 2000);
+
+      return wait_flag * 200 + delay;
+    }
+
+    </script>
+  </body>
+</html>

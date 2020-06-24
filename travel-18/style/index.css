@@ -1,0 +1,58 @@
+body {
+	margin:0;
+	padding:0;
+}
+
+#map {
+	position:absolute;
+	top:0;
+	bottom:0;
+	width:100%;
+}
+
+#start {
+    position: fixed;
+    margin: 0px auto;
+    bottom: 20%;
+    right: -3px;
+    width: 25%;
+    min-width: 200px;
+    height: 40px;
+    padding: 10px;
+    border: none;
+    border-radius: 3px;
+    font-size: 100%;
+    font-family: 'Slabo 27px', serif;
+    text-align: center;
+    color: #fff;
+    background: #ee8a65;
+}
+
+#start {
+  display: block;
+}
+
+#start:not([disabled]) span {
+	cursor: pointer;
+	display: inline-block;
+	position: relative;
+	transition: 0.5s;
+}
+
+#start:not([disabled]) span:after {
+	content: "«";
+	position: absolute;
+	opacity: 0;
+	top: 0;
+	left: 15px;
+	transition: 0.5s;
+}
+
+#start:hover:not([disabled]) span {
+  padding-left: 15px;
+}
+
+#start:hover:not([disabled]) span:after {
+  opacity: 1;
+  left: 0;
+}

@@ -1,26 +1,46 @@
 <html>
 <head>
 	<meta charset=utf-8 />
-	<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.js'></script>
-	<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.css' rel='stylesheet' />
+	<script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.11.0/mapbox-gl.js"></script>
+	<link href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.11.0/mapbox-gl.css" rel="stylesheet" />
 	<link href="https://fonts.googleapis.com/css?family=Slabo+27px" rel="stylesheet">
-	<link href='index.css' rel='stylesheet' />
+	<link href="index.css" rel="stylesheet" />
 </head>
 <body>
-	<div class='map' id='one'>
-		<div class='whiteout' ></div>
-		<button class='overlay' onclick="location.href='lamay/index.html'"><span> Lamay Island </span></div>
-	</div>
+	<table>
+		<tr>
+			<td>
+				<div class="map" id="one">
+					<div class="whiteout" ></div>
+					<button class="overlay" onclick="location.href='lamay/index.html'"><span> Lamay Island </span></div>
+				</div>
+			</td>
+			<td>
+				<div class="map" id="two">
+					<div class="whiteout"></div>
+					<button class="overlay" onclick="location.href='travel-18/index.html'"><span> Travel 2018 </span></div>
+				</div>
+			</td>
+		</tr>
 	<script>
-		mapboxgl.accessToken = 'pk.eyJ1IjoibGlseWNoYWkiLCJhIjoiY2pxZXRnZjBtNHg2dzQ0c2I1NzBxMXZodCJ9.w839Is_L9F7DBPMmg9HDvQ';
+		mapboxgl.accessToken = "pk.eyJ1IjoibGlseWNoYWkiLCJhIjoiY2tic3MxcGNmMDMxMTJxczdiZjc4dGE4NSJ9.kEwN7_i79M9tnj3uAbaipQ";
 
-		var map = new mapboxgl.Map({
-				container: 'one',
+		var map1 = new mapboxgl.Map({
+				container: "one",
 				interactive: false,
-				style: 'mapbox://styles/lilychai/cjqetqat9f7ke2rn0z97qwn5v',
+				style: "mapbox://styles/lilychai/ckbsr5t4304li1imhcnqv68y9",
 				center: [120.375, 22.336],
 				zoom: 15
 		});
+
+		var map2 = new mapboxgl.Map({
+				container: "two",
+				interactive: false,
+				style: "mapbox://styles/lilychai/ckbsr5t4304li1imhcnqv68y9",
+				center: [-180, 25],
+				zoom: 1
+		});
+
 	</script>
 </body>
 </html>
